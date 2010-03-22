@@ -46,7 +46,7 @@ int main(int argc, char **argv) {
   /* Timing related variables */
   double prevtime, currtime, intime = 0.0;
   double overhead = 0.0;
-  double prevouterttime, outtime, outmin, outmax;
+  double prevouterttime, outtime;
 
   MPI_Init(&argc, &argv);
   MPI_Comm_rank(MPI_COMM_WORLD, &myrank);
@@ -83,20 +83,21 @@ int main(int argc, char **argv) {
   outmaxpair = (struct valpair *) malloc (iterations * sizeof(struct valpair));
 
   prevouterttime = MPI_Wtime();
-  outmin = prevouterttime*1000;
   globalmin = prevouterttime*1000;
-  outmax = 0.0;
   globalmax = 0.0;
 
   for(j=0; j<iterations; j++) {
     prevtime = MPI_Wtime();
     min = prevtime*1000.0;
     max = 0.0;
+    // outtime = 0.0;
 
     for(i=0; i<iterations; i++) {
+      prevtime = MPI_Wtime();
       donework = doUnitWork(worksize);
       currtime = MPI_Wtime();
       intime =  currtime - prevtime;
+      // outtime += intime;
       sum += intime;
       sum_of_squares += intime * intime;
       min = (min > intime) ? intime : min;
@@ -108,12 +109,9 @@ int main(int argc, char **argv) {
 	hist[pos]++;
       else
 	hist[NUMBINS]++;
-      prevtime = MPI_Wtime();
     }
-    outtime = currtime-prevouterttime;
+    outtime = currtime - prevouterttime;
     prevouterttime = currtime;
-    outmin = (outmin > outtime) ? outtime : outmin;
-    outmax = (outmax < outtime) ? outtime : outmax;
 
     oneminp.val = min;
     oneminp.rank = myrank;
@@ -122,9 +120,9 @@ int main(int argc, char **argv) {
     MPI_Allreduce(&oneminp, &minpair[j], 1, MPI_DOUBLE_INT, MPI_MINLOC, MPI_COMM_WORLD);
     MPI_Allreduce(&onemaxp, &maxpair[j], 1, MPI_DOUBLE_INT, MPI_MAXLOC, MPI_COMM_WORLD);
 
-    oneminp.val = outmin;
+    oneminp.val = outtime;
     oneminp.rank = myrank;
-    onemaxp.val = outmax;
+    onemaxp.val = outtime;
     onemaxp.rank = myrank;
     MPI_Allreduce(&oneminp, &outminpair[j], 1, MPI_DOUBLE_INT, MPI_MINLOC, MPI_COMM_WORLD);
     MPI_Allreduce(&onemaxp, &outmaxpair[j], 1, MPI_DOUBLE_INT, MPI_MAXLOC, MPI_COMM_WORLD);
