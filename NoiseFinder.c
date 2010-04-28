@@ -82,8 +82,8 @@ int main(int argc, char **argv) {
     int rank;
   } oneminp, onemaxp, *minpair, *maxpair, maxdevpair, *outminpair, *outmaxpair;
 
-  minpair = (struct valpair *) malloc (iterations * sizeof(struct valpair));
-  maxpair = (struct valpair *) malloc (iterations * sizeof(struct valpair));
+  minpair = (struct valpair *) malloc (iterationsOuter * sizeof(struct valpair));
+  maxpair = (struct valpair *) malloc (iterationsOuter * sizeof(struct valpair));
   outminpair = (struct valpair *) malloc (iterationsOuter * sizeof(struct valpair));
   outmaxpair = (struct valpair *) malloc (iterationsOuter * sizeof(struct valpair));
 
@@ -137,9 +137,8 @@ int main(int argc, char **argv) {
     MPI_Allreduce(&oneminp, &outminpair[j], 1, MPI_DOUBLE_INT, MPI_MINLOC, MPI_COMM_WORLD);
     MPI_Allreduce(&onemaxp, &outmaxpair[j], 1, MPI_DOUBLE_INT, MPI_MAXLOC, MPI_COMM_WORLD);
 
-    /*  Barrier is pretty redundant
-    MPI_Barrier(MPI_COMM_WORLD);
-    */
+    // Barrier is pretty redundant
+    // MPI_Barrier(MPI_COMM_WORLD);
   }
 
   /* Compute Statistics */
