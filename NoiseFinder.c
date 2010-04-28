@@ -19,7 +19,8 @@ inline int doUnitWork(int);
 int main(int argc, char **argv) {
   int myrank, size;
   int i, j, pos;
-  int iterations;
+  int iterations = 100;
+  int iterationsOuter;
   int worksize;
 
   /* Statistics data */
@@ -32,12 +33,16 @@ int main(int argc, char **argv) {
   double mean = 0.0;
   double variance = 0.0;
   double stddev = 0.0;
-  int hist[NUMBINS+1];
-  int histSum[NUMBINS+1];
+  int smallHist[NUMBINS+1];	// 5 us each
+  int smallHistSum[NUMBINS+1];
+  int largeHist[NUMBINS+1];	// 5 ms each
+  int largeHistSum[NUMBINS+1];
 
   for(i=0; i<NUMBINS+1; i++) {
-    hist[i] = 0;
-    histSum[i] = 0;
+    smallHist[i] = 0;
+    smallHistSum[i] = 0;
+    largeHist[i] = 0;
+    largeHistSum[i] = 0;
   }
 
   // used to prevent the compiler from optimizing the delay loop away.
@@ -60,7 +65,7 @@ int main(int argc, char **argv) {
     fflush(stdout);
     MPI_Abort(MPI_COMM_WORLD,10);
   }
-  iterations = atoi(argv[1]);
+  iterationsOuter = atoi(argv[1]);
   worksize = atoi(argv[2]);
 
   /* Walltime overheads */
@@ -79,14 +84,14 @@ int main(int argc, char **argv) {
 
   minpair = (struct valpair *) malloc (iterations * sizeof(struct valpair));
   maxpair = (struct valpair *) malloc (iterations * sizeof(struct valpair));
-  outminpair = (struct valpair *) malloc (iterations * sizeof(struct valpair));
-  outmaxpair = (struct valpair *) malloc (iterations * sizeof(struct valpair));
+  outminpair = (struct valpair *) malloc (iterationsOuter * sizeof(struct valpair));
+  outmaxpair = (struct valpair *) malloc (iterationsOuter * sizeof(struct valpair));
 
   prevouterttime = MPI_Wtime();
   globalmin = prevouterttime*1000;
   globalmax = 0.0;
 
-  for(j=0; j<iterations; j++) {
+  for(j=0; j<iterationsOuter; j++) {
     prevtime = MPI_Wtime();
     min = prevtime*1000.0;
     max = 0.0;
@@ -104,11 +109,16 @@ int main(int argc, char **argv) {
       max = (max < intime) ? intime : max;
       globalmin = (globalmin > intime) ? intime : globalmin;
       globalmax = (globalmax < intime) ? intime : globalmax;
-      pos = (int) (intime / 0.000001); // size of each bin = 1 us
+      pos = (int) (intime / 0.000005);	// size of each bin = 5 us
       if(pos < NUMBINS)
-	hist[pos]++;
+	smallHist[pos]++;
       else
-	hist[NUMBINS]++;
+	smallHist[NUMBINS]++;
+      pos = (int) (intime / 0.005);	// size of each bin = 5 ms
+      if(pos < NUMBINS)
+	largeHist[pos]++;
+      else
+	largeHist[NUMBINS]++;
     }
     outtime = currtime - prevouterttime;
     prevouterttime = currtime;
@@ -133,13 +143,14 @@ int main(int argc, char **argv) {
   }
 
   /* Compute Statistics */
-  mean = sum/(iterations*iterations);
-  stddev = sqrt((sum_of_squares - 2*mean*sum + mean*mean*iterations*iterations) / 
-		(iterations*iterations - 1));
+  mean = sum/(iterationsOuter*iterations);
+  stddev = sqrt((sum_of_squares - 2*mean*sum + mean*mean*iterationsOuter*iterations) / 
+		(iterationsOuter*iterations - 1));
   onemaxp.val=stddev;
   MPI_Allreduce(&onemaxp, &maxdevpair, 1, MPI_DOUBLE_INT, MPI_MAXLOC, MPI_COMM_WORLD);
   
-  MPI_Reduce(&hist, &histSum, NUMBINS+1, MPI_INT, MPI_SUM, 0, MPI_COMM_WORLD);
+  MPI_Reduce(&smallHist, &smallHistSum, NUMBINS+1, MPI_INT, MPI_SUM, 0, MPI_COMM_WORLD);
+  MPI_Reduce(&largeHist, &largeHistSum, NUMBINS+1, MPI_INT, MPI_SUM, 0, MPI_COMM_WORLD);
   
   /* Print Summary */
   char name[30];
@@ -158,26 +169,24 @@ int main(int argc, char **argv) {
   MPI_Barrier(MPI_COMM_WORLD);    
   if(myrank==0) {
     outf = fopen(name, "a");
-    fprintf(outf, "Rank %d : Num Steps = %d\n", myrank, iterations);
+    fprintf(outf, "Rank %d : Num Steps = %d X %d\n", myrank, iterationsOuter, iterations);
     fprintf(outf, "Rank %d : MPI_Wtime overhead per step = %f\n", myrank, overhead);
     fprintf(outf, "Rank %d : worksize %d\n", myrank, worksize);
-    for(i=0;i<iterations; i++) {
+    for(i=0;i<iterations; i++)
       fprintf(outf, "Iter[%d] max %f on rank %d min %f on rank %d\n", i, maxpair[i].val, maxpair[i].rank, minpair[i].val, minpair[i].rank);
+    for(i=0;i<iterationsOuter; i++)
       fprintf(outf, "Iter[%d] outer max %f on rank %d min %f on rank %d\n", i, outmaxpair[i].val, outmaxpair[i].rank, outminpair[i].val, outminpair[i].rank);
-    }
     fprintf(outf, "Rank[%d] had max dev %f \n", maxdevpair.rank, maxdevpair.val);
 
     for(i=0; i<NUMBINS+1; i++)
-      fprintf(outf, "Hist %d %d\n", i, histSum[i]);
+      fprintf(outf, "smallHist %d %d\n", i, smallHistSum[i]);
+    for(i=0; i<NUMBINS+1; i++)
+      fprintf(outf, "largeHist %d %d\n", i, largeHistSum[i]);
 
     fclose(outf);
   }
 
   /*
-  mean = sum/iterations*iterations;
-  stddev = sqrt((sum_of_squares - 2*mean*sum + mean*mean*iterations*iterations) / 
-		(iterations*iterations - 1));
-
   printf("Rank %d : Average steptime = %f\n", myrank, mean);
   printf("Rank %d : donework %d\n",myrank, donework);
   */
