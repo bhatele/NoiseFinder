@@ -33,10 +33,10 @@ int main(int argc, char **argv) {
   double mean = 0.0;
   double variance = 0.0;
   double stddev = 0.0;
-  int smallHist[NUMBINS+1];	// 5 us each
-  int smallHistSum[NUMBINS+1];
-  int largeHist[NUMBINS+1];	// 5 ms each
-  int largeHistSum[NUMBINS+1];
+  long long smallHist[NUMBINS+1];	// 5 us each
+  long long smallHistSum[NUMBINS+1];
+  long long largeHist[NUMBINS+1];	// 5 ms each
+  long long largeHistSum[NUMBINS+1];
 
   for(i=0; i<NUMBINS+1; i++) {
     smallHist[i] = 0;
@@ -148,8 +148,8 @@ int main(int argc, char **argv) {
   onemaxp.val=stddev;
   MPI_Allreduce(&onemaxp, &maxdevpair, 1, MPI_DOUBLE_INT, MPI_MAXLOC, MPI_COMM_WORLD);
   
-  MPI_Reduce(&smallHist, &smallHistSum, NUMBINS+1, MPI_INT, MPI_SUM, 0, MPI_COMM_WORLD);
-  MPI_Reduce(&largeHist, &largeHistSum, NUMBINS+1, MPI_INT, MPI_SUM, 0, MPI_COMM_WORLD);
+  MPI_Reduce(&smallHist, &smallHistSum, NUMBINS+1, MPI_LONG_LONG, MPI_SUM, 0, MPI_COMM_WORLD);
+  MPI_Reduce(&largeHist, &largeHistSum, NUMBINS+1, MPI_LONG_LONG, MPI_SUM, 0, MPI_COMM_WORLD);
   
   /* Print Summary */
   char name[30];
@@ -178,9 +178,9 @@ int main(int argc, char **argv) {
     fprintf(outf, "Rank[%d] had max dev %f \n", maxdevpair.rank, maxdevpair.val);
 
     for(i=0; i<NUMBINS+1; i++)
-      fprintf(outf, "smallHist %d %d\n", i, smallHistSum[i]);
+      fprintf(outf, "smallHist %d %lld\n", i, smallHistSum[i]);
     for(i=0; i<NUMBINS+1; i++)
-      fprintf(outf, "largeHist %d %d\n", i, largeHistSum[i]);
+      fprintf(outf, "largeHist %d %lld\n", i, largeHistSum[i]);
 
     fclose(outf);
   }
