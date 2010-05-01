@@ -155,7 +155,7 @@ int main(int argc, char **argv) {
   MPI_Allreduce(&onemaxp, &maxdevpair, 1, MPI_DOUBLE_INT, MPI_MAXLOC, MPI_COMM_WORLD);
   
   noiseProcHist[myrank] = smallHist[NUMBINS];
-  MPI_Reduce(&noiseProcHistCat, &noiseProcHist, size, MPI_LONG_LONG, MPI_SUM, 0, MPI_COMM_WORLD);
+  MPI_Reduce(&noiseProcHist, &noiseProcHistCat, size, MPI_LONG_LONG, MPI_SUM, 0, MPI_COMM_WORLD);
 
   MPI_Reduce(&smallHist, &smallHistSum, NUMBINS+1, MPI_LONG_LONG, MPI_SUM, 0, MPI_COMM_WORLD);
   MPI_Reduce(&largeHist, &largeHistSum, NUMBINS+1, MPI_LONG_LONG, MPI_SUM, 0, MPI_COMM_WORLD);
