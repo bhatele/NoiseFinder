@@ -57,6 +57,12 @@ int main(int argc, char **argv) {
   MPI_Comm_rank(MPI_COMM_WORLD, &myrank);
   MPI_Comm_size(MPI_COMM_WORLD, &size);
 
+  long long noiseProcHist[size];
+  long long noiseProcHistCat[size];
+  for (i = 0; i < size; i++){
+    noiseProcHist[i] = 0;
+    noiseProcHistCat[i] = 0;
+  }
   int errlen;
   char usage[100+MPI_MAX_ERROR_STRING]="Usage: NoiseFinder NumIterations Grainsize\n";
 
@@ -148,6 +154,9 @@ int main(int argc, char **argv) {
   onemaxp.val=stddev;
   MPI_Allreduce(&onemaxp, &maxdevpair, 1, MPI_DOUBLE_INT, MPI_MAXLOC, MPI_COMM_WORLD);
   
+  noiseProcHist[myrank] = largeHist[NUMBINS];
+  MPI_Reduce(&noiseProcHistCat, &noiseProcHist, size, MPI_LONG_LONG, MPI_SUM, 0, MPI_COMM_WORLD);
+
   MPI_Reduce(&smallHist, &smallHistSum, NUMBINS+1, MPI_LONG_LONG, MPI_SUM, 0, MPI_COMM_WORLD);
   MPI_Reduce(&largeHist, &largeHistSum, NUMBINS+1, MPI_LONG_LONG, MPI_SUM, 0, MPI_COMM_WORLD);
   
@@ -181,6 +190,9 @@ int main(int argc, char **argv) {
       fprintf(outf, "smallHist %d %lld\n", i, smallHistSum[i]);
     for(i=0; i<NUMBINS+1; i++)
       fprintf(outf, "largeHist %d %lld\n", i, largeHistSum[i]);
+
+    for(i=0; i<size; i++)
+      fprintf(outf, "noiseProcHist %d %lld\n", i, noiseProcHistCat[i]);
 
     fclose(outf);
   }
