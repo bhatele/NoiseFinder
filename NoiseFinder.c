@@ -154,7 +154,7 @@ int main(int argc, char **argv) {
   onemaxp.val=stddev;
   MPI_Allreduce(&onemaxp, &maxdevpair, 1, MPI_DOUBLE_INT, MPI_MAXLOC, MPI_COMM_WORLD);
   
-  noiseProcHist[myrank] = largeHist[NUMBINS];
+  noiseProcHist[myrank] = smallHist[NUMBINS];
   MPI_Reduce(&noiseProcHistCat, &noiseProcHist, size, MPI_LONG_LONG, MPI_SUM, 0, MPI_COMM_WORLD);
 
   MPI_Reduce(&smallHist, &smallHistSum, NUMBINS+1, MPI_LONG_LONG, MPI_SUM, 0, MPI_COMM_WORLD);
