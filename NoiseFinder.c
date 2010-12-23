@@ -14,7 +14,7 @@
 #define TAG			255
 #define NUMBINS			200
 
-inline int doUnitWork(int);
+int doUnitWork(int);
 
 int main(int argc, char **argv) {
   int myrank, size;
@@ -33,9 +33,9 @@ int main(int argc, char **argv) {
   double mean = 0.0;
   double variance = 0.0;
   double stddev = 0.0;
-  long long smallHist[NUMBINS+1];	// 5 us each
+  long long smallHist[NUMBINS+1];	/* 5 us each */
   long long smallHistSum[NUMBINS+1];
-  long long largeHist[NUMBINS+1];	// 5 ms each
+  long long largeHist[NUMBINS+1];	/* 5 ms each */
   long long largeHistSum[NUMBINS+1];
 
   for(i=0; i<NUMBINS+1; i++) {
@@ -45,7 +45,7 @@ int main(int argc, char **argv) {
     largeHistSum[i] = 0;
   }
 
-  // used to prevent the compiler from optimizing the delay loop away.
+  /* used to prevent the compiler from optimizing the delay loop away */
   double dummydata = 0.0;
 
   /* Timing related variables */
@@ -101,26 +101,26 @@ int main(int argc, char **argv) {
     prevtime = MPI_Wtime();
     min = prevtime*1000.0;
     max = 0.0;
-    // outtime = 0.0;
+    /* outtime = 0.0; */
 
     for(i=0; i<iterations; i++) {
       prevtime = MPI_Wtime();
       donework = doUnitWork(worksize);
       currtime = MPI_Wtime();
       intime =  currtime - prevtime;
-      // outtime += intime;
+      /* outtime += intime; */
       sum += intime;
       sum_of_squares += intime * intime;
       min = (min > intime) ? intime : min;
       max = (max < intime) ? intime : max;
       globalmin = (globalmin > intime) ? intime : globalmin;
       globalmax = (globalmax < intime) ? intime : globalmax;
-      pos = (int) (intime / 0.000005);	// size of each bin = 5 us
+      pos = (int) (intime / 0.000005);	/* size of each bin = 5 us */
       if(pos < NUMBINS)
 	smallHist[pos]++;
       else
 	smallHist[NUMBINS]++;
-      pos = (int) (intime / 0.005);	// size of each bin = 5 ms
+      pos = (int) (intime / 0.005);	/* size of each bin = 5 ms */
       if(pos < NUMBINS)
 	largeHist[pos]++;
       else
@@ -143,8 +143,8 @@ int main(int argc, char **argv) {
     MPI_Allreduce(&oneminp, &outminpair[j], 1, MPI_DOUBLE_INT, MPI_MINLOC, MPI_COMM_WORLD);
     MPI_Allreduce(&onemaxp, &outmaxpair[j], 1, MPI_DOUBLE_INT, MPI_MAXLOC, MPI_COMM_WORLD);
 
-    // Barrier is pretty redundant
-    // MPI_Barrier(MPI_COMM_WORLD);
+    /* Barrier is pretty redundant
+    MPI_Barrier(MPI_COMM_WORLD); */
   }
 
   /* Compute Statistics */
@@ -207,7 +207,7 @@ int main(int argc, char **argv) {
   MPI_Finalize();
 }
 
-inline int doUnitWork(int repeat) {
+int doUnitWork(int repeat) {
   double dummydata = 0.0;
   int i, repeatcount;
 
@@ -219,3 +219,4 @@ inline int doUnitWork(int repeat) {
 
   return (((int)dummydata)*repeat);
 }
+
