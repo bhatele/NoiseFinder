@@ -73,6 +73,7 @@ int main(int argc, char **argv) {
   }
   iterationsOuter = atoi(argv[1]);
   worksize = atoi(argv[2]);
+  double *savetime = malloc(sizeof(double)*iterationsOuter*iterations);
 
   /* Walltime overheads */
   prevtime = MPI_Wtime();
@@ -108,6 +109,8 @@ int main(int argc, char **argv) {
       donework = doUnitWork(worksize);
       currtime = MPI_Wtime();
       intime =  currtime - prevtime;
+      savetime[j*iterations + i] = intime;
+
       /* outtime += intime; */
       sum += intime;
       sum_of_squares += intime * intime;
@@ -165,6 +168,8 @@ int main(int argc, char **argv) {
   sprintf(name, "noise_pe%d", myrank);
   FILE *outf = fopen(name, "w");
   fprintf(outf, "Rank %d : Mean = %f Min = %f Max = %f StdDev = %f\n", myrank, mean, globalmin, globalmax, stddev);
+  for(i=0; i<iterationsOuter*iterations; i++)
+    fprintf(outf, "Rank %d: Time %d\n", myrank, savetime[i]);
   fflush(NULL);
   fclose(outf);
 
@@ -176,25 +181,25 @@ int main(int argc, char **argv) {
 
   MPI_Barrier(MPI_COMM_WORLD);    
   if(myrank==0) {
-    outf = fopen(name, "a");
-    fprintf(outf, "Rank %d : Num Steps = %d X %d\n", myrank, iterationsOuter, iterations);
-    fprintf(outf, "Rank %d : MPI_Wtime overhead per step = %f\n", myrank, overhead);
-    fprintf(outf, "Rank %d : worksize %d\n", myrank, worksize);
+    FILE *outs = fopen("summary", "w");
+    fprintf(outs, "Rank %d : Num Steps = %d X %d\n", myrank, iterationsOuter, iterations);
+    fprintf(outs, "Rank %d : MPI_Wtime overhead per step = %f\n", myrank, overhead);
+    fprintf(outs, "Rank %d : worksize %d\n", myrank, worksize);
     for(i=0;i<iterations; i++)
-      fprintf(outf, "Iter[%d] max %f on rank %d min %f on rank %d\n", i, maxpair[i].val, maxpair[i].rank, minpair[i].val, minpair[i].rank);
+      fprintf(outs, "Iter[%d] max %f on rank %d min %f on rank %d\n", i, maxpair[i].val, maxpair[i].rank, minpair[i].val, minpair[i].rank);
     for(i=0;i<iterationsOuter; i++)
-      fprintf(outf, "Iter[%d] outer max %f on rank %d min %f on rank %d\n", i, outmaxpair[i].val, outmaxpair[i].rank, outminpair[i].val, outminpair[i].rank);
-    fprintf(outf, "Rank[%d] had max dev %f \n", maxdevpair.rank, maxdevpair.val);
+      fprintf(outs, "Iter[%d] outer max %f on rank %d min %f on rank %d\n", i, outmaxpair[i].val, outmaxpair[i].rank, outminpair[i].val, outminpair[i].rank);
+    fprintf(outs, "Rank[%d] had max dev %f \n", maxdevpair.rank, maxdevpair.val);
 
     for(i=0; i<NUMBINS+1; i++)
-      fprintf(outf, "smallHist %d %lld\n", i, smallHistSum[i]);
+      fprintf(outs, "smallHist %d %lld\n", i, smallHistSum[i]);
     for(i=0; i<NUMBINS+1; i++)
-      fprintf(outf, "largeHist %d %lld\n", i, largeHistSum[i]);
+      fprintf(outs, "largeHist %d %lld\n", i, largeHistSum[i]);
 
     for(i=0; i<size; i++)
-      fprintf(outf, "noiseProcHist %d %lld\n", i, noiseProcHistCat[i]);
+      fprintf(outs, "noiseProcHist %d %lld\n", i, noiseProcHistCat[i]);
 
-    fclose(outf);
+    fclose(outs);
   }
 
   /*
