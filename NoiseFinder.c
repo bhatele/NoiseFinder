@@ -169,7 +169,7 @@ int main(int argc, char **argv) {
   FILE *outf = fopen(name, "w");
   fprintf(outf, "Rank %d : Mean = %f Min = %f Max = %f StdDev = %f\n", myrank, mean, globalmin, globalmax, stddev);
   for(i=0; i<iterationsOuter*iterations; i++)
-    fprintf(outf, "Rank %d: Time %d\n", myrank, savetime[i]);
+    fprintf(outf, "Rank %d: Time %f\n", myrank, savetime[i]);
   fflush(NULL);
   fclose(outf);
 
